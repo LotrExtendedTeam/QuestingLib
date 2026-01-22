@@ -21,3 +21,4 @@ build
 # other
 eclipse
 run
+/.apt_generated/
