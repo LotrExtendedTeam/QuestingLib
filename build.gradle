@@ -1,0 +1,35 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+}
+
+group = 'com.github.lotrextendedteam'
+version = '0.1.0'
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(8)
+println("Java: ${System.getProperty('java.version')} JVM: ${System.getProperty('java.vm.version')} (${System.getProperty('java.vendor')}) Arch: ${System.getProperty('os.arch')}")
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+jar {
+    manifest {
+        attributes(
+            "Specification-Title": "QuestingLib",
+            "Specification-Vendor": "LOTRExtendedTeam",
+            "Specification-Version": version,
+            "Implementation-Title": "QuestingLib",
+            "Implementation-Vendor": "LOTRExtendedTeam",
+            "Implementation-Version": version,
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+            "Built-By": "LOTRExtendedTeam",
+            "Build-Jdk": System.getProperty("java.version"),
+            "Created-By": "Gradle ${gradle.gradleVersion}",
+            "Implementation-URL": "https://github.com/lotrextendedteam/questinglib",
+            "Implementation-License": "Apache-2.0"
+        )
+    }
+}
