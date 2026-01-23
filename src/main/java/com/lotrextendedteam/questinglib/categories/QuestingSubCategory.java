@@ -4,15 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.lotrextendedteam.questinglib.Quest;
 import com.lotrextendedteam.questinglib.QuestContext;
 import com.lotrextendedteam.questinglib.restrictions.QuestingRestriction;
 
-public abstract class QuestingCategory {
+public abstract class QuestingSubCategory {
 	private final int weight;
 	private final List<String> restrictionIds = new ArrayList<>();
-	private final List<QuestingSubCategory> subCategories = new ArrayList<>();
 
-	protected QuestingCategory(int weight) {
+	protected QuestingSubCategory(int weight) {
 		this.weight = weight;
 	}
 
@@ -22,10 +22,6 @@ public abstract class QuestingCategory {
 
 	public void registerRestriction(String restrictionId) {
 		restrictionIds.add(restrictionId);
-	}
-
-	public void registerSubCategory(QuestingSubCategory subCategory) {
-		subCategories.add(subCategory);
 	}
 
 	public boolean passesRestrictions(QuestContext context, Map<String, QuestingRestriction> globalRestrictions) {
@@ -38,20 +34,11 @@ public abstract class QuestingCategory {
 		return true;
 	}
 
-	public List<QuestingSubCategory> getValidSubCategories(
-			QuestContext context,
-			Map<String, QuestingRestriction> globalRestrictions
-			) {
-		if (!passesRestrictions(context, globalRestrictions)) {
-			return new ArrayList<>();
-		}
-
-		List<QuestingSubCategory> valid = new ArrayList<>();
-		for (QuestingSubCategory sub : subCategories) {
-			if (sub.isValid(context, globalRestrictions)) {
-				valid.add(sub);
-			}
-		}
-		return valid;
+	public boolean isValid(QuestContext context, Map<String, QuestingRestriction> globalRestrictions) {
+		return passesRestrictions(context, globalRestrictions) && isValidInternal(context);
 	}
+
+	protected abstract boolean isValidInternal(QuestContext context);
+
+	public abstract List<Quest> generateQuests(QuestContext context);
 }
