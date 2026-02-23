@@ -1,35 +1,36 @@
 package com.lotrextendedteam.questinglib;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import com.lotrextendedteam.questinglib.categories.QuestingCategoryGroup;
+import com.lotrextendedteam.questinglib.categories.QuestingNode;
 import com.lotrextendedteam.questinglib.categories.QuestingCategory;
-import com.lotrextendedteam.questinglib.categories.QuestingSubCategory;
-import com.lotrextendedteam.questinglib.restrictions.QuestingRestriction;
 
 public class QuestingEngine {
-	private final Map<String, QuestingCategory> questCategories = new HashMap<>();
-	private final Map<String, QuestingRestriction> questRestrictions = new HashMap<>();
+	private final Map<String, QuestingCategoryGroup> questCategoryGroups = new HashMap<>();
+	private final Map<String, Predicate<QuestContext>> questRestrictions = new HashMap<>();
 	private final Random random = new Random();
 
 	private QuestingEngine() {}
 
-	public static QuestingEngine initializeEngine() {
+	public static QuestingEngine initializeNewEngine() {
 		return new QuestingEngine();
 	}
 
-	public QuestingEngine registerQuestCategory(String name, QuestingCategory category) throws IllegalArgumentException {
-		if(questCategories.containsKey(name)) {
+	public QuestingEngine registerQuestCategory(String name, QuestingCategoryGroup category) throws IllegalArgumentException {
+		if(questCategoryGroups.containsKey(name)) {
 			throw new IllegalArgumentException("A quest category of the name [" + name + "] already exists!");
 		}
-		questCategories.put(name, category);
+		questCategoryGroups.put(name, category);
 		return this;
 	}
 
-	public QuestingEngine registerQuestRestriction(String name, QuestingRestriction restriction) throws IllegalArgumentException  {
+	public QuestingEngine registerQuestRestriction(String name, Predicate<QuestContext> restriction) throws IllegalArgumentException  {
 		if(questRestrictions.containsKey(name)) {
 			throw new IllegalArgumentException("A quest restriction of the name [" + name + "] already exists!");
 		}
@@ -38,52 +39,40 @@ public class QuestingEngine {
 	}
 
 	public Quest generateQuest(QuestContext context) {
-		// Step 1: Filter categories by their own restrictions
-		List<QuestingCategory> validCategories = new ArrayList<>();
-		for (QuestingCategory category : questCategories.values()) {
-			if (category.passesRestrictions(context, questRestrictions)) {
-				validCategories.add(category);
-			}
-		}
+	    // Step 1: valid groups
+	    List<QuestingCategoryGroup> validGroups = questCategoryGroups.values().stream()
+	            .filter(group -> group.isValid(context, questRestrictions))
+	            .collect(Collectors.toList());
 
-		if (validCategories.isEmpty()) return null;
+	    QuestingCategoryGroup chosenGroup = weightedPickSafe(validGroups);
+	    if (chosenGroup == null) return null;
 
-		QuestingCategory chosenCategory = weightedPickCategory(validCategories);
+	    // Step 2: valid categories
+	    List<QuestingCategory> validCategories = chosenGroup.getValidCategories(context, questRestrictions);
 
-		// Step 2: Filter subcategories
-		List<QuestingSubCategory> validSubs =
-				chosenCategory.getValidSubCategories(context, questRestrictions);
+	    QuestingCategory chosenCategory = weightedPickSafe(validCategories);
+	    if (chosenCategory == null) return null;
 
-		if (validSubs.isEmpty()) return null;
+	    // Step 3: quest pool
+	    List<Quest> pool = chosenCategory.generateQuests(context);
+	    if (pool == null || pool.isEmpty()) return null;
 
-		QuestingSubCategory chosenSub = weightedPickSub(validSubs);
-
-		// Step 3: Generate & pick quest
-		List<Quest> pool = chosenSub.generateQuests(context);
-		return pool.get(random.nextInt(pool.size()));
+	    return pool.get(random.nextInt(pool.size()));
 	}
 
-	private QuestingCategory weightedPickCategory(List<QuestingCategory> list) {
-		int total = list.stream().mapToInt(QuestingCategory::getWeight).sum();
-		int roll = random.nextInt(total);
-		int running = 0;
+	private <T extends QuestingNode> T weightedPickSafe(List<T> list) {
+	    if (list == null || list.isEmpty()) return null;
+	    int total = list.stream() .mapToInt(T::getWeight).filter(w -> w > 0).sum();
+	    if (total <= 0) return null; // prevents nextInt(0)
+	    int roll = random.nextInt(total);
+	    int running = 0;
 
-		for (QuestingCategory cat : list) {
-			running += cat.getWeight();
-			if (roll < running) return cat;
-		}
-		return list.get(0);
-	}
-
-	private QuestingSubCategory weightedPickSub(List<QuestingSubCategory> list) {
-		int total = list.stream().mapToInt(QuestingSubCategory::getWeight).sum();
-		int roll = random.nextInt(total);
-		int running = 0;
-
-		for (QuestingSubCategory sub : list) {
-			running += sub.getWeight();
-			if (roll < running) return sub;
-		}
-		return list.get(0);
+	    for (T item : list) {
+	        int weight = item.getWeight();
+	        if (weight <= 0) continue;
+	        running += weight;
+	        if (roll < running) return item;
+	    }
+	    return null; // fully safe fallback
 	}
 }
