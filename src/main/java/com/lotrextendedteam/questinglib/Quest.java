@@ -1,14 +1,17 @@
 package com.lotrextendedteam.questinglib;
 
-public class Quest {
-	private final String id;
-	private final String description;
+import java.util.UUID;
 
-	public Quest(String id, String description) {
+public abstract class Quest {
+	private final UUID id;
+
+	public Quest(UUID id) {
 		this.id = id;
-		this.description = description;
 	}
 
-	public String getId() { return id; }
-	public String getDescription() { return description; }
+	public UUID getId() { 
+		return id;
+	}
+
+	public abstract String getString();
 }

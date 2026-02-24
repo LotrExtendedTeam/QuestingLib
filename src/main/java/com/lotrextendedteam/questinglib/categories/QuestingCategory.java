@@ -39,7 +39,7 @@ public abstract class QuestingCategory implements QuestingNode {
 
 	protected abstract boolean isValidInternal(QuestContext context);
 
-	public abstract List<Quest> generateQuests(QuestContext context);
+	public abstract Quest generateQuest(QuestContext context);
 
 	@Override
 	public List<QuestingCategory> getValidCategories(QuestContext context, Map<String, Predicate<QuestContext>> globalRestrictions) {

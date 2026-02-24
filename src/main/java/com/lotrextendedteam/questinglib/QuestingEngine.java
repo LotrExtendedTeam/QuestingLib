@@ -7,12 +7,11 @@ import java.util.Random;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import com.lotrextendedteam.questinglib.categories.QuestingCategoryGroup;
 import com.lotrextendedteam.questinglib.categories.QuestingNode;
 import com.lotrextendedteam.questinglib.categories.QuestingCategory;
 
 public class QuestingEngine {
-	private final Map<String, QuestingCategoryGroup> questCategoryGroups = new HashMap<>();
+	private final Map<String, QuestingCategory> questCategoryGroups = new HashMap<>();
 	private final Map<String, Predicate<QuestContext>> questRestrictions = new HashMap<>();
 	private final Random random = new Random();
 
@@ -22,7 +21,7 @@ public class QuestingEngine {
 		return new QuestingEngine();
 	}
 
-	public QuestingEngine registerQuestCategory(String name, QuestingCategoryGroup category) throws IllegalArgumentException {
+	public QuestingEngine registerQuestCategory(String name, QuestingCategory category) throws IllegalArgumentException {
 		if(questCategoryGroups.containsKey(name)) {
 			throw new IllegalArgumentException("A quest category of the name [" + name + "] already exists!");
 		}
@@ -30,7 +29,7 @@ public class QuestingEngine {
 		return this;
 	}
 
-	public QuestingEngine registerQuestRestriction(String name, Predicate<QuestContext> restriction) throws IllegalArgumentException  {
+	public QuestingEngine registerQuestRestriction(String name, Predicate<QuestContext> restriction) throws IllegalArgumentException {
 		if(questRestrictions.containsKey(name)) {
 			throw new IllegalArgumentException("A quest restriction of the name [" + name + "] already exists!");
 		}
@@ -39,25 +38,14 @@ public class QuestingEngine {
 	}
 
 	public Quest generateQuest(QuestContext context) {
-	    // Step 1: valid groups
-	    List<QuestingCategoryGroup> validGroups = questCategoryGroups.values().stream()
+	    List<QuestingCategory> validGroups = questCategoryGroups.values().stream()
 	            .filter(group -> group.isValid(context, questRestrictions))
 	            .collect(Collectors.toList());
 
-	    QuestingCategoryGroup chosenGroup = weightedPickSafe(validGroups);
+	    QuestingCategory chosenGroup = weightedPickSafe(validGroups);
 	    if (chosenGroup == null) return null;
 
-	    // Step 2: valid categories
-	    List<QuestingCategory> validCategories = chosenGroup.getValidCategories(context, questRestrictions);
-
-	    QuestingCategory chosenCategory = weightedPickSafe(validCategories);
-	    if (chosenCategory == null) return null;
-
-	    // Step 3: quest pool
-	    List<Quest> pool = chosenCategory.generateQuests(context);
-	    if (pool == null || pool.isEmpty()) return null;
-
-	    return pool.get(random.nextInt(pool.size()));
+	    return chosenGroup.generateQuest(context);
 	}
 
 	private <T extends QuestingNode> T weightedPickSafe(List<T> list) {
